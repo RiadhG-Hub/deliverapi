@@ -5,8 +5,26 @@ import 'package:firebase_facilitator/mixin/firestore_read_service.dart';
 import 'package:firebase_facilitator/mixin/firestore_storage_service.dart';
 import 'package:firebase_facilitator/mixin/firestore_write_service.dart';
 import 'package:firebase_facilitator/mixin/logger_service.dart';
-
 import 'login/data_source/login_data_source.dart';
+
+/// Base exception class for all authentication-related exceptions.
+abstract class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Exception for login failures.
+class LoginException extends AuthException {
+  LoginException(super.message);
+}
+
+/// Exception for Firestore interaction failures.
+class FirestoreException extends AuthException {
+  FirestoreException(super.message);
+}
 
 /// A service that provides authentication-related operations, combining multiple Firebase mixins
 /// for seamless Firestore interaction and authentication handling.
@@ -40,7 +58,9 @@ class AuthenticationService
 
 /// An abstract interface defining the required authentication operations.
 abstract class AuthenticationInterface {
-  /// Logs in a user using their email and password, returning a map containing authentication details.
+  /// Logs in a user using their email and password.
+  ///
+  /// Returns a map containing authentication details.
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -59,7 +79,7 @@ class AuthenticationApi extends AuthenticationInterface {
   final RegistrationService _registrationService;
   final LoginService _loginService;
 
-  /// Creates an instance of [Authentication] with the required services for login and registration.
+  /// Creates an instance of [AuthenticationApi] with the required services for login and registration.
   AuthenticationApi({
     required RegistrationService registrationService,
     required LoginService loginService,
@@ -68,34 +88,38 @@ class AuthenticationApi extends AuthenticationInterface {
 
   /// Logs in a user by delegating to the [LoginService].
   ///
-  /// [email] - The user's email.
-  /// [password] - The user's password.
-  /// Returns a [Future] containing a map with authentication details.
+  /// Throws [LoginException] for login failures.
   @override
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
-    final result = await _loginService.login(email: email, password: password);
-    return result;
+    try {
+      final result =
+          await _loginService.login(email: email, password: password);
+      return result;
+    } catch (e) {
+      throw LoginException("Failed to log in: $e");
+    }
   }
 
   /// Registers a new user by delegating to the [RegistrationService].
   ///
-  /// [email] - The user's email.
-  /// [password] - The user's password.
-  /// [userData] - Additional data to associate with the user.
-  /// Returns a [Future] that completes when registration is successful.
+  /// Throws [RegistrationException] for registration failures.
   @override
   Future<void> registerUser({
     required String email,
     required String password,
     required Map<String, dynamic> userData,
   }) async {
-    await _registrationService.registerUser(
-      email: email,
-      password: password,
-      userData: userData,
-    );
+    try {
+      await _registrationService.registerUser(
+        email: email,
+        password: password,
+        userData: userData,
+      );
+    } catch (e) {
+      throw RegistrationException("Failed to register user: $e");
+    }
   }
 }

@@ -1,5 +1,19 @@
+import 'package:deliverapi/api_exception.dart';
 import 'package:deliverapi/features/authentication/authentication.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+
+
+/// Exception for authentication failures.
+class AuthenticationException extends ApiException {
+  AuthenticationException(super.message);
+}
+
+/// Exception for user not found scenarios.
+class UserNotFoundException extends ApiException {
+  UserNotFoundException(super.message);
+}
+
 
 /// A service that manages the login process for users, including
 /// authentication and retrieval of user data from the backend.
@@ -8,9 +22,6 @@ class LoginService {
   final AuthenticationService authService;
 
   /// Constructs a [LoginService] with the necessary Firebase and authentication services.
-  ///
-  /// - [firebaseAuth]: The Firebase Authentication instance for handling user authentication.
-  /// - [authService]: The custom service for fetching user-related data.
   LoginService({
     required this.firebaseAuth,
     required this.authService,
@@ -18,11 +29,7 @@ class LoginService {
 
   /// Authenticates a user with their email and password.
   ///
-  /// - [email]: The user's email address.
-  /// - [password]: The user's password.
-  ///
-  /// Returns a [UserCredential] if the authentication is successful.
-  /// Throws an exception if authentication fails.
+  /// Throws [AuthenticationException] if authentication fails.
   Future<UserCredential> _authenticateUser({
     required String email,
     required String password,
@@ -32,53 +39,58 @@ class LoginService {
         email: email,
         password: password,
       );
+    } on FirebaseAuthException catch (e) {
+      throw AuthenticationException(
+          "Authentication failed: ${e.message ?? 'Unknown error'}");
     } catch (e) {
-      rethrow;
+      throw BackendException("Unexpected error during authentication: $e");
     }
   }
 
   /// Retrieves user details by their unique ID.
   ///
-  /// - [userId]: The unique identifier of the user.
-  ///
-  /// Returns a [Map<String, dynamic>] containing the user's details if found.
-  /// Throws an exception if the user data is not found or if the backend call fails.
+  /// Throws [UserNotFoundException] if the user data is not found.
+  /// Throws [BackendException] if the backend call fails.
   Future<Map<String, dynamic>> _getUserDetailsById({
     required String userId,
   }) async {
-    final userDetails = await authService.fetchDocumentById(docId: userId);
-    if (userDetails == null) {
-      throw Exception("User not found. Please sign up first.");
+    try {
+      final userDetails = await authService.fetchDocumentById(docId: userId);
+      if (userDetails == null) {
+        throw UserNotFoundException("User not found. Please sign up first.");
+      }
+      return userDetails;
+    } catch (e) {
+      throw BackendException("Error fetching user details: $e");
     }
-    return userDetails;
   }
 
   /// Logs in a user using their email and password.
   ///
-  /// - [email]: The user's email address.
-  /// - [password]: The user's password.
-  ///
-  /// This method handles both authentication and fetching user details:
-  /// 1. Authenticates the user using the provided credentials.
-  /// 2. Fetches the user's details from the backend based on their ID.
-  ///
-  /// Returns a [Map<String, dynamic>] containing the user's details if the process is successful.
-  /// Throws an exception if authentication fails or the user details cannot be retrieved.
+  /// Throws [AuthenticationException], [UserNotFoundException], or [BackendException].
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
-    final userCredential = await _authenticateUser(
-      email: email,
-      password: password,
-    );
+    try {
+      final userCredential = await _authenticateUser(
+        email: email,
+        password: password,
+      );
 
-    if (userCredential.user == null) {
-      throw Exception("Authentication failed. Please sign up first.");
+      if (userCredential.user == null) {
+        throw AuthenticationException(
+            "Authentication failed. User record not found.");
+      }
+
+      return await _getUserDetailsById(
+        userId: userCredential.user!.uid,
+      );
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw BackendException("Unexpected error during login: $e");
     }
-
-    return await _getUserDetailsById(
-      userId: userCredential.user!.uid,
-    );
   }
 }
