@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:deliverapi/features/authentication/user_registration_service/data_source/register_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_facilitator/mixin/auth_service.dart';
@@ -76,12 +78,12 @@ class AuthenticationApi
 
   @override
   Future<Map<String, dynamic>> performLogin(
-      {required String email, required String password}) =>
+          {required String email, required String password}) =>
       _loginService.performLogin(email: email, password: password);
 
   @override
   Future<UserCredential> createUserAccount(
-      {required String email, required String password}) =>
+          {required String email, required String password}) =>
       _registrationService.createUserAccount(email: email, password: password);
 
   @override
@@ -90,14 +92,18 @@ class AuthenticationApi
 
   @override
   Future<void> signUpUser(
-      {required String email,
-        required String password,
-        required Map<String, dynamic> userData}) =>
+          {required String email,
+          required String password,
+          required Map<String, dynamic> userData}) =>
       _registrationService.signUpUser(
           email: email, password: password, userData: userData);
 
   @override
   Future<UserCredential> signIn(
-      {required String email, required String password}) =>
+          {required String email, required String password}) =>
       _loginService.signIn(email: email, password: password);
+
+  @override
+  Future<String> storePicture({required File file}) =>
+      _registrationService.storePicture(file: file);
 }

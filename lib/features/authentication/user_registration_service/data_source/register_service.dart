@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:deliverapi/api_exception.dart';
 import 'package:deliverapi/features/authentication/authentication_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,6 +32,8 @@ abstract class UserRegistrationServiceInterface {
     required String password,
     required Map<String, dynamic> userData,
   });
+
+  Future<String> storePicture({required File file});
 }
 
 /// Implementation of the [UserRegistrationServiceInterface] that uses Firebase
@@ -107,5 +111,12 @@ class UserRegistrationService implements UserRegistrationServiceInterface {
       }
       throw BackendException("Unexpected error during user sign-up: $e");
     }
+  }
+
+  @override
+  Future<String> storePicture({required File file}) async {
+    final String result = await _backendService.uploadFile(
+        filePath: file.path, storagePath: "users/pictures");
+    return result;
   }
 }
