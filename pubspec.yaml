@@ -84,6 +84,8 @@ dependencies:
     git:
       url: https://github.com/RiadhG-Hub/mandarin.git
       ref: dev
+  fake_cloud_firestore: ^3.0.2
+  firebase_auth_mocks: ^0.14.1
 
 
 

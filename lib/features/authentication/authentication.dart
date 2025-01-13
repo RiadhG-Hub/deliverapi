@@ -1,11 +1,12 @@
-import 'package:deliverapi/features/authentication/register/data_source/register_data_source.dart';
+import 'package:deliverapi/features/authentication/user_registration_service/data_source/register_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_facilitator/mixin/auth_service.dart';
 import 'package:firebase_facilitator/mixin/crud_repos.dart';
 import 'package:firebase_facilitator/mixin/firestore_read_service.dart';
 import 'package:firebase_facilitator/mixin/firestore_storage_service.dart';
 import 'package:firebase_facilitator/mixin/firestore_write_service.dart';
 import 'package:firebase_facilitator/mixin/logger_service.dart';
-import 'login/data_source/login_data_source.dart';
+import 'login/data_source/login_service.dart';
 
 /// Base exception class for all authentication-related exceptions.
 abstract class AuthException implements Exception {
@@ -56,70 +57,47 @@ class AuthenticationService
   AuthService get authService => FirebaseAuthService();
 }
 
-/// An abstract interface defining the required authentication operations.
-abstract class AuthenticationInterface {
-  /// Logs in a user using their email and password.
-  ///
-  /// Returns a map containing authentication details.
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  });
-
-  /// Registers a new user with the provided email, password, and additional user data.
-  Future<void> registerUser({
-    required String email,
-    required String password,
-    required Map<String, dynamic> userData,
-  });
-}
-
 /// A concrete implementation of the [AuthenticationInterface] that integrates login and registration services.
-class AuthenticationApi extends AuthenticationInterface {
-  final RegistrationService _registrationService;
+class AuthenticationApi
+    implements LoginServiceInterface, UserRegistrationServiceInterface {
+  final UserRegistrationService _registrationService;
   final LoginService _loginService;
 
   /// Creates an instance of [AuthenticationApi] with the required services for login and registration.
   AuthenticationApi({
-    required RegistrationService registrationService,
+    required UserRegistrationService registrationService,
     required LoginService loginService,
   })  : _registrationService = registrationService,
         _loginService = loginService;
 
-  /// Logs in a user by delegating to the [LoginService].
-  ///
-  /// Throws [LoginException] for login failures.
   @override
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      final result =
-          await _loginService.login(email: email, password: password);
-      return result;
-    } catch (e) {
-      throw LoginException("Failed to log in: $e");
-    }
-  }
+  Future<Map<String, dynamic>> fetchUserById({required String userId}) =>
+      _loginService.fetchUserById(userId: userId);
 
-  /// Registers a new user by delegating to the [RegistrationService].
-  ///
-  /// Throws [RegistrationException] for registration failures.
   @override
-  Future<void> registerUser({
-    required String email,
-    required String password,
-    required Map<String, dynamic> userData,
-  }) async {
-    try {
-      await _registrationService.registerUser(
-        email: email,
-        password: password,
-        userData: userData,
-      );
-    } catch (e) {
-      throw RegistrationException("Failed to register user: $e");
-    }
-  }
+  Future<Map<String, dynamic>> performLogin(
+          {required String email, required String password}) =>
+      _loginService.performLogin(email: email, password: password);
+
+  @override
+  Future<UserCredential> createUserAccount(
+          {required String email, required String password}) =>
+      _registrationService.createUserAccount(email: email, password: password);
+
+  @override
+  Future<void> persistUserData({required Map<String, dynamic> userData}) =>
+      _registrationService.persistUserData(userData: userData);
+
+  @override
+  Future<void> signUpUser(
+          {required String email,
+          required String password,
+          required Map<String, dynamic> userData}) =>
+      _registrationService.signUpUser(
+          email: email, password: password, userData: userData);
+
+  @override
+  Future<UserCredential> signIn(
+          {required String email, required String password}) =>
+      _loginService.signIn(email: email, password: password);
 }
