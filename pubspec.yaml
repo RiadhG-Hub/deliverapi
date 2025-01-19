@@ -86,6 +86,7 @@ dependencies:
       ref: dev
   fake_cloud_firestore: ^3.0.2
   firebase_auth_mocks: ^0.14.1
+  mime: ^2.0.0
 
 
 

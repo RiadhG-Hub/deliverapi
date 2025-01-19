@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:deliverapi/api_exception.dart';
 import 'package:deliverapi/features/authentication/authentication_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mime/mime.dart';
 
 import 'exception/register_exception.dart';
 
@@ -113,8 +114,42 @@ class UserRegistrationService implements UserRegistrationServiceInterface {
     }
   }
 
+  /// Stores a picture file in the backend storage.
+  ///
+  /// This method uploads an image file to the specified storage path.
+  /// It validates the file to ensure it is a valid image before uploading.
+  ///
+  /// Throws:
+  /// - [ArgumentError] if the provided file is not a valid image.
+  ///
+  /// Parameters:
+  /// - [file]: The image file to be uploaded. It must be a valid image file with
+  ///   an appropriate MIME type (e.g., `image/jpeg`, `image/png`).
+  ///
+  /// Returns:
+  /// A [Future] containing the URL or identifier of the stored picture.
+  ///
+  /// Example:
+  /// ```dart
+  /// final file = File('path/to/picture.jpg');
+  /// try {
+  ///   final url = await storePicture(file: file);
+  ///   print('Picture uploaded successfully: $url');
+  /// } catch (e) {
+  ///   print('Error: $e');
+  /// }
+  /// ```
   @override
   Future<String> storePicture({required File file}) async {
+    // Get the MIME type of the file
+    final String? mimeType = lookupMimeType(file.path);
+
+    // Check if the MIME type is an image
+    if (mimeType == null || !mimeType.startsWith('image/')) {
+      throw ArgumentError('The provided file is not a valid picture.');
+    }
+
+    // Upload the file to the backend storage
     final String result = await _backendService.uploadFile(
         filePath: file.path, storagePath: "users/pictures");
     return result;
